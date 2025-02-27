@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 type Timeout = ReturnType<typeof setTimeout>;
-
+interface WonType {
+  win: boolean;
+  player: string;
+  match: number[];
+}
 export default function CubesBoard() {
   const timeoutRef = useRef<Timeout | null>(null);
 
@@ -14,7 +18,7 @@ export default function CubesBoard() {
   const [isTimeTravel, setTimeTravel] = useState(false);
   const [step, setStep] = useState(0);
   const [name, setName] = useState("");
-  const [isWon, setIsWon] = useState(false);
+  const [isWon, setIsWon] = useState<boolean | WonType>(false);
   const [isTied, setIsTied] = useState(false);
   const [isBot, setIsBot] = useState(false);
   const [isEdit, setIsEdit] = useState(true);
@@ -30,7 +34,7 @@ export default function CubesBoard() {
 
       const won = winnerDecider(copy);
       if (won) {
-        setIsWon(true);
+        setIsWon(won);
         return;
       }
 
@@ -70,6 +74,11 @@ export default function CubesBoard() {
           value={item as number | string | undefined}
           key={index}
           onPress={() => handlePress(index)}
+          match={
+            isWon && (isWon as WonType).match.includes(index)
+              ? (isWon as WonType).match
+              : undefined
+          }
         />
       )),
     [values]
@@ -144,7 +153,16 @@ export default function CubesBoard() {
           )}
         </View>
       )}
-      <View style={styles.cubesBlock}>{cubes}</View>
+      <View style={styles.cubesBlock}>
+        {cubes}
+        {(isWon || isTied) && (
+          <View style={styles.gameOver}>
+            <Text style={styles.gameOverText}>
+              {isWon ? `${(isWon as WonType).player} Won!` : "Game Tied!"}
+            </Text>
+          </View>
+        )}
+      </View>
       <View style={styles.footer}>
         <Text style={styles.footerText}>Time Travel</Text>
         <View style={styles.steps}>
@@ -195,11 +213,14 @@ export default function CubesBoard() {
 type Props = {
   value: number | string | undefined;
   onPress: () => void;
+  match: number[] | undefined;
 };
 
-const Cube = ({ value, onPress }: Props): JSX.Element => (
+const Cube = ({ value, onPress, match }: Props): JSX.Element => (
   <Pressable style={styles.cube} onPress={onPress}>
-    <Text style={styles.cubeText}>{value}</Text>
+    <Text style={[styles.cubeText, match && { color: "deeppink" }]}>
+      {value}
+    </Text>
   </Pressable>
 );
 
@@ -227,6 +248,7 @@ const styles = StyleSheet.create({
     height: 300,
     flexDirection: "row",
     flexWrap: "wrap",
+    position: "relative",
   },
   cube: {
     width: 100,
@@ -241,7 +263,7 @@ const styles = StyleSheet.create({
     marginRight: -1,
     marginTop: -1,
   },
-  cubeText: { fontSize: 24, color: "#000" },
+  cubeText: { fontSize: 24, color: "#000", padding: 5 },
   footer: {
     gap: 8,
     alignItems: "center",
@@ -298,6 +320,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     fontSize: 18,
   },
+  gameOver: {
+    position: "absolute",
+    top: "25%",
+    left: 40,
+    right: 40,
+    backgroundColor: "deeppink",
+    padding: 10,
+    alignItems: "center",
+  },
+  gameOverText: { color: "#fff", fontSize: 24 },
 });
 
 function winnerDecider(values: (string | undefined)[]) {
@@ -315,7 +347,7 @@ function winnerDecider(values: (string | undefined)[]) {
     const a = values[win[0]];
     const b = values[win[1]];
     const c = values[win[2]];
-    if (a && a === b && b === c) return { win: true, player: a };
+    if (a && a === b && b === c) return { win: true, player: a, match: win };
   }
   return false;
 }
