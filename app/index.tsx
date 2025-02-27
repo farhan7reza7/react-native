@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
+type Timeout = ReturnType<typeof setTimeout>;
+
 export default function CubesBoard() {
+  const timeoutRef = useRef<Timeout | null>(null);
+
   const [values, setValues] = useState<Array<undefined | string>>(
     Array.from({ length: 9 })
   );
@@ -13,6 +17,7 @@ export default function CubesBoard() {
   const [isWon, setIsWon] = useState(false);
   const [isTied, setIsTied] = useState(false);
   const [isBot, setIsBot] = useState(false);
+  const [isEdit, setIsEdit] = useState(true);
 
   const handlePress = useCallback(
     (index: number) => {
@@ -46,23 +51,17 @@ export default function CubesBoard() {
     [values, isX, isTimeTravel, step, isWon, isTied]
   );
 
-  useEffect(() => {
-    if (isBot) {
-      setTimeout(() => {
-        const leftArr: number[] = [];
-        const vals = values.filter((val, index) => {
-          if (val === undefined) {
-            leftArr.push(index);
-            return true;
-          }
-          return false;
-        });
-        if (!leftArr.length) return;
-        handlePress(leftArr[Math.floor(Math.random() * (leftArr.length - 1))]);
-        setIsBot(false);
-      }, 1000);
-    }
-  }, [isBot, values]);
+  const handleReset = useCallback(() => {
+    setValues(history[0]);
+    setHistory([history[0]]);
+    setStep(0);
+    setTimeTravel(false);
+    setIsWon(false);
+    setIsTied(false);
+    setIsBot(false);
+    setIsX(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+  }, []);
 
   const cubes = useMemo(
     () =>
@@ -102,6 +101,29 @@ export default function CubesBoard() {
     [history]
   );
 
+  useEffect(() => {
+    if (isBot) {
+      timeoutRef.current = setTimeout(() => {
+        const leftArr: number[] = [];
+        const vals = values.filter((val, index) => {
+          if (val === undefined) {
+            leftArr.push(index);
+            return true;
+          }
+          return false;
+        });
+        if (!leftArr.length) return;
+        handlePress(leftArr[Math.floor(Math.random() * (leftArr.length - 1))]);
+        setIsBot(false);
+      }, 1000);
+
+      return () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      };
+    }
+  }, [isBot, values]);
+
   return (
     <View style={styles.container}>
       <Text style={styles.cubesHeader}>
@@ -112,7 +134,16 @@ export default function CubesBoard() {
           : "Game Tied By: "}
         <Text style={styles.cubesHeaderSpan}>{isX ? "X" : "Y"}</Text>
       </Text>
-      {name && <Text style={styles.name}>{name}</Text>}
+      {name && (
+        <View style={styles.nameContainer}>
+          <Text style={styles.name}>{name}</Text>
+          {!isEdit && (
+            <Pressable onPress={() => setIsEdit(true)} style={styles.stepBtn}>
+              <Text style={styles.stepText}>Edit</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
       <View style={styles.cubesBlock}>{cubes}</View>
       <View style={styles.footer}>
         <Text style={styles.footerText}>Time Travel</Text>
@@ -126,14 +157,7 @@ export default function CubesBoard() {
                 pressed && styles.pressed,
                 hovered && styles.hovered,
               ]}
-              onPress={() => {
-                setValues(history[0]);
-                setHistory([history[0]]);
-                setStep(0);
-                setTimeTravel(false);
-                setIsWon(false);
-                setIsTied(false);
-              }}
+              onPress={handleReset}
             >
               <Text style={styles.stepText}>Play Again</Text>
             </Pressable>
@@ -141,14 +165,29 @@ export default function CubesBoard() {
         </View>
       </View>
 
-      <View style={styles.inputWrapper}>
-        <TextInput
-          style={styles.input}
-          value={name}
-          placeholder="Write your name"
-          onChangeText={setName}
-        />
-      </View>
+      {isEdit && (
+        <View style={styles.inputWrapper}>
+          <TextInput
+            style={styles.input}
+            value={name}
+            placeholder="Write your name"
+            onChangeText={setName}
+            maxLength={30}
+          />
+          <Pressable
+            onPress={() => {
+              if (name.length) setIsEdit(false);
+            }}
+            style={[
+              styles.stepBtn,
+              !name.length && { backgroundColor: "lightgray" },
+            ]}
+            disabled={!name.length}
+          >
+            <Text style={styles.stepText}>Submit</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -176,6 +215,12 @@ const styles = StyleSheet.create({
   },
   cubesHeader: { color: "#000", fontSize: 18 },
   cubesHeaderSpan: { color: "green", fontSize: 24, fontWeight: "bold" },
+  nameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
   name: { color: "green", fontSize: 20, fontWeight: "medium" },
   cubesBlock: {
     width: 300,
@@ -237,6 +282,8 @@ const styles = StyleSheet.create({
   stepText: { color: "#fff", fontSize: 14 },
   inputWrapper: {
     padding: 25,
+    flexDirection: "row",
+    gap: 8,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 10,
