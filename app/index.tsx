@@ -72,6 +72,7 @@ export default function CubesBoard() {
       values.map((item, index) => (
         <Cube
           value={item as number | string | undefined}
+          index={index}
           key={index}
           onPress={() => handlePress(index)}
           match={
@@ -214,15 +215,28 @@ type Props = {
   value: number | string | undefined;
   onPress: () => void;
   match: number[] | undefined;
+  index: number;
 };
 
-const Cube = ({ value, onPress, match }: Props): JSX.Element => (
-  <Pressable style={styles.cube} onPress={onPress}>
-    <Text style={[styles.cubeText, match && { color: "deeppink" }]}>
-      {value}
-    </Text>
-  </Pressable>
-);
+const Cube = ({ value, onPress, match, index }: Props): JSX.Element => {
+  const restStyle = useMemo(() => {
+    if (index === 0) {
+      return styles.borderEdge;
+    } else if ([1, 2].includes(index)) {
+      return styles.borderTop;
+    } else if ([3, 6].includes(index)) {
+      return styles.borderLeft;
+    }
+  }, [index]);
+
+  return (
+    <Pressable style={[styles.cube, restStyle]} onPress={onPress}>
+      <Text style={[styles.cubeText, match && { color: "deeppink" }]}>
+        {value}
+      </Text>
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   keyboard: { flex: 1 },
@@ -256,14 +270,16 @@ const styles = StyleSheet.create({
     height: 100,
     backgroundColor: "white",
     borderColor: "#000",
-    borderWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
     justifyContent: "center",
     lineHeight: 100,
     alignItems: "center",
-    marginRight: -1,
-    marginTop: -1,
   },
-  cubeText: { fontSize: 24, color: "#000", padding: 5 },
+  borderEdge: { borderTopWidth: 1, borderLeftWidth: 1 },
+  borderLeft: { borderLeftWidth: 1 },
+  borderTop: { borderTopWidth: 1 },
+  cubeText: { fontSize: 24, color: "#000" },
   footer: {
     gap: 8,
     alignItems: "center",

@@ -41,7 +41,7 @@ const App = ({ children }: { children: JSX.Element }): JSX.Element => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.textHeader}>Cuboids Block Header</Text>
+        <Text style={styles.textHeader}>Tic Tac Toe Plus</Text>
       </View>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -51,7 +51,7 @@ const App = ({ children }: { children: JSX.Element }): JSX.Element => {
         <View style={styles.main}>{children}</View>
       </ScrollView>
       <View style={styles.footer}>
-        <Text style={styles.textFooter}>Cuboids Block Footer</Text>
+        <Text style={styles.textFooter}>&copy; 2025</Text>
       </View>
     </View>
   );
